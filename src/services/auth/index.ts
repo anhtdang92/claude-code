@@ -206,6 +206,21 @@ export async function getCurrentClearance(): Promise<ClassificationLevel> {
 }
 
 /**
+ * Initialize the auth system at startup.
+ * For API key auth, auto-authenticates immediately.
+ * For other methods, prepares the provider without authenticating.
+ */
+export async function initializeAuth(): Promise<void> {
+	const method = getAuthMethod()
+	getAuthProvider() // Ensure provider is created
+
+	// Auto-authenticate for API key method (no interactive login needed)
+	if (method === 'apikey') {
+		await authenticate()
+	}
+}
+
+/**
  * Clear the current authentication state.
  */
 export function logout(): void {

@@ -67,7 +67,7 @@ const DEFAULT_FEATURES: Record<string, boolean | string | number> = {
 
 let loadedFeatures: Record<string, boolean | string | number> | null = null
 
-function loadFeatures(): Record<string, boolean | string | number> {
+export function loadFeatures(): Record<string, boolean | string | number> {
 	if (loadedFeatures) return loadedFeatures
 
 	// Start with defaults
