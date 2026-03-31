@@ -1,17 +1,16 @@
 <div align="center">
 
-# Claude Code — Source Code
+# SecureShell AI
 
-**The full source code of Anthropic's Claude Code CLI, made public on March 31, 2026**
+**Air-Gapped, LLM-Agnostic AI Coding Terminal for Defense & Classified Environments**
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-512K%2B_lines-3178C6?logo=typescript&logoColor=white)](#tech-stack)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript&logoColor=white)](#tech-stack)
 [![Bun](https://img.shields.io/badge/Runtime-Bun-f472b6?logo=bun&logoColor=white)](#tech-stack)
-[![React + Ink](https://img.shields.io/badge/UI-React_%2B_Ink-61DAFB?logo=react&logoColor=black)](#tech-stack)
-[![Files](https://img.shields.io/badge/~1,900_files-source_only-grey)](#directory-structure)
-[![MCP Server](https://img.shields.io/badge/MCP-Explorer_Server-blueviolet)](#-explore-with-mcp-server)
-[![npm](https://img.shields.io/npm/v/claude-code-explorer-mcp?label=npm&color=cb3837&logo=npm)](https://www.npmjs.com/package/claude-code-explorer-mcp)
+[![Air-Gapped](https://img.shields.io/badge/Network-Air--Gapped-critical)](#air-gapped-architecture)
+[![LLM Agnostic](https://img.shields.io/badge/LLM-Agnostic-blueviolet)](#supported-providers)
+[![Classification](https://img.shields.io/badge/Data-Classification--Aware-orange)](#classification-system)
 
-> The original unmodified source is preserved in the [`backup` branch](https://github.com/nirholas/claude-code/tree/backup).
+> An AI-powered coding terminal that runs entirely on-premise with zero outbound network traffic. Supports any LLM backend -- local or cloud. Built for IL4/IL5, SCIF, and air-gapped networks.
 
 </div>
 
@@ -19,425 +18,464 @@
 
 ## Table of Contents
 
-- [How It Became Public](#how-it-became-public)
-- [What Is Claude Code?](#what-is-claude-code)
-- [Documentation](#-documentation)
-- [Explore with MCP Server](#-explore-with-mcp-server)
-- [Directory Structure](#directory-structure)
+- [What is SecureShell AI?](#what-is-secureshell-ai)
+- [Why SecureShell AI?](#why-secureshell-ai)
+- [Supported LLM Providers](#supported-llm-providers)
+- [Air-Gapped Architecture](#air-gapped-architecture)
+- [Classification System](#classification-system)
+- [Core Features](#core-features)
+  - [Tool System](#tool-system)
+  - [Permission Engine](#permission-engine)
+  - [Audit Logging](#audit-logging)
+  - [Authentication](#authentication)
+- [Quick Start](#quick-start)
+  - [Local Development](#local-development)
+  - [Docker](#docker)
+  - [Kubernetes (Helm)](#kubernetes-helm)
+- [Configuration](#configuration)
+  - [Provider Configuration](#provider-configuration)
+  - [Classification Levels](#classification-levels)
+  - [Permission Modes](#permission-modes)
+  - [Audit Configuration](#audit-configuration)
+- [Deployment Guide](#deployment-guide)
+  - [Air-Gapped Docker Image](#air-gapped-docker-image)
+  - [Kubernetes with GPU Scheduling](#kubernetes-with-gpu-scheduling)
+  - [Model Weight Management](#model-weight-management)
 - [Architecture](#architecture)
-  - [Tool System](#1-tool-system)
-  - [Command System](#2-command-system)
-  - [Service Layer](#3-service-layer)
-  - [Bridge System](#4-bridge-system)
-  - [Permission System](#5-permission-system)
-  - [Feature Flags](#6-feature-flags)
-- [Key Files](#key-files)
-- [Tech Stack](#tech-stack)
-- [Design Patterns](#design-patterns)
-- [GitPretty Setup](#gitpretty-setup)
-- [Contributing](#contributing)
-- [Disclaimer](#disclaimer)
+- [Development](#development)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
-## How It Became Public
+## What is SecureShell AI?
 
-[Chaofan Shou (@Fried_rice)](https://x.com/Fried_rice) discovered that the published npm package for Claude Code included a `.map` file referencing the full, unobfuscated TypeScript source — accessible as a zip from Anthropic's R2 storage bucket.
-
-An Anthropic employee subsequently made the source available in the public domain on March 31, 2026.
-
----
-
-## What Is Claude Code?
-
-Claude Code is Anthropic's official CLI tool for interacting with Claude directly from the terminal — editing files, running commands, searching codebases, managing git workflows, and more. This repository contains the `src/` directory.
+SecureShell AI is an AI-powered terminal coding assistant designed for environments where data cannot leave the network. It provides the full power of an AI coding agent -- file editing, code search, command execution, sub-agent orchestration -- while running entirely on-premise against local or approved LLM backends.
 
 | | |
 |---|---|
-| **Published** | 2026-03-31 |
-| **Language** | TypeScript (strict) |
 | **Runtime** | [Bun](https://bun.sh) |
-| **Terminal UI** | [React](https://react.dev) + [Ink](https://github.com/vadimdemedes/ink) |
-| **Scale** | ~1,900 files · 512,000+ lines of code |
+| **Language** | TypeScript (strict) |
+| **Terminal UI** | React + [Ink](https://github.com/vadimdemedes/ink) |
+| **LLM Support** | Ollama, vLLM, llama.cpp, TGI, Bedrock GovCloud, Azure GovCloud, Custom OpenAI-compatible |
+| **Classification** | UNCLASSIFIED, CUI, SECRET, TOP SECRET |
+| **Compliance** | IL4, IL5, SCIF-ready, STIG-aware |
 
 ---
 
-## 📚 Documentation
+## Why SecureShell AI?
 
-For in-depth guides, see the [`docs/`](docs/) directory:
-
-| Guide | Description |
-|-------|-------------|
-| **[Architecture](docs/architecture.md)** | Core pipeline, startup sequence, state management, rendering, data flow |
-| **[Tools Reference](docs/tools.md)** | Complete catalog of all ~40 agent tools with categories and permission model |
-| **[Commands Reference](docs/commands.md)** | All ~85 slash commands organized by category |
-| **[Subsystems Guide](docs/subsystems.md)** | Deep dives into Bridge, MCP, Permissions, Plugins, Skills, Tasks, Memory, Voice |
-| **[Exploration Guide](docs/exploration-guide.md)** | How to navigate the codebase — study paths, grep patterns, key files |
-
-Also see: [CONTRIBUTING.md](CONTRIBUTING.md) · [MCP Server README](mcp-server/README.md)
+| Problem | SecureShell AI Solution |
+|---|---|
+| AI coding tools send code to external APIs | Zero outbound traffic -- all inference runs on-premise |
+| No classification-aware access controls | Per-file classification labels with clearance-gated access |
+| No audit trail for AI actions | Immutable, append-only audit log for every tool invocation |
+| Locked to a single LLM vendor | Provider-agnostic -- swap LLMs via environment variable |
+| No CAC/PIV authentication | Native smart card authentication for defense networks |
+| STIG compliance is manual | Built-in STIG compliance checking tool |
 
 ---
 
-## 🔍 Explore with MCP Server
+## Supported LLM Providers
 
-This repo ships an [MCP server](https://modelcontextprotocol.io/) that lets any MCP-compatible client (Claude Code, Claude Desktop, VS Code Copilot, Cursor) explore the full source interactively.
+SecureShell AI uses an adapter pattern to support any LLM that exposes an API:
 
-### Install from npm
+| Provider | Type | Environment Variable | Use Case |
+|---|---|---|---|
+| **Ollama** | Local | `LLM_PROVIDER=ollama` | Single-machine development |
+| **vLLM** | Local/Cluster | `LLM_PROVIDER=vllm` | GPU cluster inference |
+| **llama.cpp** | Local | `LLM_PROVIDER=llamacpp` | Lightweight local inference |
+| **Text Generation Inference (TGI)** | Local/Cluster | `LLM_PROVIDER=tgi` | HuggingFace models |
+| **AWS Bedrock GovCloud** | Cloud (Gov) | `LLM_PROVIDER=bedrock-govcloud` | FedRAMP-authorized cloud |
+| **Azure GovCloud** | Cloud (Gov) | `LLM_PROVIDER=azure-govcloud` | IL5-authorized cloud |
+| **Custom OpenAI-compatible** | Any | `LLM_PROVIDER=custom` | Any OpenAI-compatible API |
 
-The MCP server is published as [`claude-code-explorer-mcp`](https://www.npmjs.com/package/claude-code-explorer-mcp) on npm — no need to clone the repo:
-
-```bash
-# Claude Code
-claude mcp add claude-code-explorer -- npx -y claude-code-explorer-mcp
-```
-
-### One-liner setup (from source)
-
-```bash
-git clone https://github.com/nirholas/claude-code.git ~/claude-code \
-  && cd ~/claude-code/mcp-server \
-  && npm install && npm run build \
-  && claude mcp add claude-code-explorer -- node ~/claude-code/mcp-server/dist/index.js
-```
-
-<details>
-<summary><strong>Step-by-step setup</strong></summary>
+### Provider Configuration Example
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/nirholas/claude-code.git
-cd claude-code/mcp-server
+# Local Ollama with CodeLlama
+export LLM_PROVIDER=ollama
+export LLM_ENDPOINT=http://localhost:11434
+export LLM_MODEL=codellama:70b
 
-# 2. Install & build
-npm install && npm run build
+# GPU cluster with vLLM
+export LLM_PROVIDER=vllm
+export LLM_ENDPOINT=http://inference-server.internal:8000
+export LLM_MODEL=deepseek-coder-v2
 
-# 3. Register with Claude Code
-claude mcp add claude-code-explorer -- node /absolute/path/to/claude-code/mcp-server/dist/index.js
+# AWS Bedrock GovCloud
+export LLM_PROVIDER=bedrock-govcloud
+export AWS_REGION=us-gov-west-1
+export LLM_MODEL=anthropic.claude-sonnet-4-20250514
+
+# Any OpenAI-compatible endpoint
+export LLM_PROVIDER=custom
+export LLM_ENDPOINT=http://my-inference:8080/v1
+export LLM_MODEL=my-model
+export LLM_API_KEY=my-key  # optional
 ```
 
-Replace `/absolute/path/to/claude-code` with your actual clone path.
+---
 
-</details>
+## Air-Gapped Architecture
 
-<details>
-<summary><strong>VS Code / Cursor / Claude Desktop config</strong></summary>
+```
++-----------------------------------------------------------+
+|                    AIR-GAPPED NETWORK                      |
+|                                                            |
+|  +---------------+    +---------------+    +------------+  |
+|  |  SecureShell  |    |   LLM         |    |   Audit    |  |
+|  |  Terminal     |<-->|   Router      |<-->|   Logger   |  |
+|  |  (React/Ink)  |    |   (Adapter)   |    | (Immutable)|  |
+|  +-------+-------+    +-------+-------+    +-----+------+  |
+|          |                    |                   |         |
+|          |             +------+-------+    +-----+------+  |
+|          |             |   Provider   |    | Permission |  |
+|          |             |   Adapters   |    |  Engine    |  |
+|          |             +------+-------+    | (Class-    |  |
+|          |                    |             |  Aware)    |  |
+|          |                    |             +------------+  |
+|  +-------+--------------------+---------------------------+|
+|  |           Local LLM Infrastructure                      |
+|  |  +-----------+  +-----------+  +--------------------+   |
+|  |  |  Ollama   |  |   vLLM    |  | llama.cpp / TGI   |   |
+|  |  +-----------+  +-----------+  +--------------------+   |
+|  +---------------------------------------------------------+|
+|                                                            |
+|  +---------------------------------------------------------+|
+|  |  On-Prem GPU Cluster (NVIDIA A100/H100)                 |
+|  +---------------------------------------------------------+|
+|                                                            |
+|  ZERO OUTBOUND NETWORK TRAFFIC                             |
+|  NetworkPolicy: deny all egress                            |
++-----------------------------------------------------------+
+```
 
-**VS Code** — add to `.vscode/mcp.json`:
+### What Was Removed for Air-Gap
+
+| External Dependency | Status | Replacement |
+|---|---|---|
+| Anthropic API (api.anthropic.com) | Removed | Local LLM provider adapters |
+| OAuth (claude.ai, platform.claude.com) | Removed | Local auth (API key, CAC/PIV, LDAP) |
+| GrowthBook feature flags | Removed | Static local config file |
+| Remote managed settings | Removed | Local settings.json |
+| Policy limits (remote) | Removed | Local policy file |
+| Datadog analytics | Removed | Internal audit log |
+| BigQuery metrics export | Removed | Internal Prometheus/Grafana |
+| 1P event logging | Removed | Internal audit log |
+| OTEL telemetry (external) | Optional | Internal collector or disabled |
+| MCP registry (remote) | Removed | Local registry only |
+| Domain validation (WebFetchTool) | Removed | WebFetch disabled in air-gap mode |
+
+---
+
+## Classification System
+
+SecureShell AI enforces data classification at the file and directory level:
+
+```typescript
+type ClassificationLevel = 'UNCLASSIFIED' | 'CUI' | 'SECRET' | 'TOP_SECRET'
+```
+
+### How It Works
+
+1. **File Classification**: Files and directories are tagged with classification levels via `.classification.json` manifest files
+2. **User Clearance**: Users authenticate with a clearance level (derived from CAC/PIV or LDAP group)
+3. **Tool Gating**: Every tool invocation checks file classification against user clearance before execution
+4. **Audit Trail**: Classification-gated access decisions are logged to the immutable audit log
+
+### Classification Manifest Example
+
 ```json
 {
-  "servers": {
-    "claude-code-explorer": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/dist/index.js"],
-      "env": { "CLAUDE_CODE_SRC_ROOT": "${workspaceFolder}/src" }
-    }
-  }
+  "default": "CUI",
+  "rules": [
+    { "pattern": "src/crypto/**", "level": "SECRET" },
+    { "pattern": "docs/public/**", "level": "UNCLASSIFIED" },
+    { "pattern": "*.key", "level": "TOP_SECRET" }
+  ]
 }
 ```
 
-**Claude Desktop** — add to your config file:
+---
+
+## Core Features
+
+### Tool System
+
+Self-contained, LLM-agnostic tools with Zod-validated input schemas:
+
+| Tool | Category | Description |
+|---|---|---|
+| `BashTool` | Execution | Sandboxed shell command execution |
+| `FileReadTool` | File I/O | Read files with format detection |
+| `FileEditTool` | File I/O | Partial file modification (string replacement) |
+| `FileWriteTool` | File I/O | Create / overwrite files |
+| `GlobTool` | Search | File pattern matching |
+| `GrepTool` | Search | ripgrep-based content search |
+| `AgentTool` | Orchestration | Sub-agent spawning for parallel work |
+| `TodoWriteTool` | Planning | Task tracking and management |
+| `AuditLogTool` | Defense | Write entries to immutable audit trail |
+| `STIGCheckTool` | Defense | Run DISA STIG compliance checks |
+| `SBOMTool` | Defense | Generate Software Bill of Materials |
+| `ClassificationTool` | Defense | Tag files with classification levels |
+
+### Permission Engine
+
+Classification-aware permission system with defense-specific modes:
+
+| Mode | Description |
+|---|---|
+| `default` | Prompt user for each tool invocation |
+| `plan` | Read-only planning mode -- no writes allowed |
+| `il4` | IL4 compliant -- audit everything, no PII in prompts |
+| `il5` | IL5 compliant -- CUI allowed, full audit, no external calls |
+| `scif` | SCIF mode -- most restrictive, no file export, no clipboard |
+| `custom-policy` | Load from organization-provided policy file |
+
+### Audit Logging
+
+Every tool invocation produces an immutable audit record:
+
 ```json
 {
-  "mcpServers": {
-    "claude-code-explorer": {
-      "command": "node",
-      "args": ["/absolute/path/to/claude-code/mcp-server/dist/index.js"],
-      "env": { "CLAUDE_CODE_SRC_ROOT": "/absolute/path/to/claude-code/src" }
-    }
-  }
+  "timestamp": "2026-03-31T14:22:01.000Z",
+  "sessionId": "a1b2c3d4",
+  "userId": "john.doe.civ",
+  "clearanceLevel": "SECRET",
+  "tool": "FileReadTool",
+  "input": { "file_path": "/project/src/main.ts" },
+  "fileClassification": "CUI",
+  "decision": "allow",
+  "durationMs": 12,
+  "resultHash": "sha256:abc123..."
 }
 ```
 
-**Cursor** — add to `~/.cursor/mcp.json` (same format as Claude Desktop).
+Audit logs are:
+- **Append-only**: No modification or deletion
+- **Hash-chained**: Each entry includes the hash of the previous entry
+- **Exportable**: SYSLOG, JSON Lines, or Splunk-compatible format
+- **Tamper-evident**: HMAC signature on each entry using server key
 
-</details>
+### Authentication
 
-### Available tools & prompts
+| Method | Use Case | Configuration |
+|---|---|---|
+| API Key | Development, CI/CD | `AUTH_PROVIDER=apikey` |
+| CAC/PIV | Defense networks | `AUTH_PROVIDER=cac` |
+| LDAP/AD | Enterprise on-prem | `AUTH_PROVIDER=ldap` |
+| mTLS Client Cert | Zero-trust environments | `AUTH_PROVIDER=mtls` |
 
-| Tool | Description |
-|------|-------------|
-| `list_tools` | List all ~40 agent tools with source files |
-| `list_commands` | List all ~50 slash commands with source files |
-| `get_tool_source` | Read full source of any tool (e.g. BashTool, FileEditTool) |
-| `get_command_source` | Read source of any slash command (e.g. review, mcp) |
-| `read_source_file` | Read any file from `src/` by path |
-| `search_source` | Grep across the entire source tree |
-| `list_directory` | Browse `src/` directories |
-| `get_architecture` | High-level architecture overview |
+---
 
-| Prompt | Description |
-|--------|-------------|
-| `explain_tool` | Deep-dive into how a specific tool works |
-| `explain_command` | Understand a slash command's implementation |
-| `architecture_overview` | Guided tour of the full architecture |
-| `how_does_it_work` | Explain any subsystem (permissions, MCP, bridge, etc.) |
-| `compare_tools` | Side-by-side comparison of two tools |
+## Quick Start
 
-**Try asking:** *"How does the BashTool work?"* · *"Search for where permissions are checked"* · *"Show me the /review command source"*
+### Prerequisites
 
-### Custom source path / Remove
+- [Bun](https://bun.sh) v1.0+
+- [ripgrep](https://github.com/BurntSushi/ripgrep)
+- A local LLM server (Ollama recommended for getting started)
+
+### Local Development
 
 ```bash
-# Custom source location
-claude mcp add claude-code-explorer -e CLAUDE_CODE_SRC_ROOT=/path/to/src -- node /path/to/mcp-server/dist/index.js
+# 1. Install dependencies
+bun install
 
-# Remove
-claude mcp remove claude-code-explorer
+# 2. Start Ollama with a coding model
+ollama pull codellama:70b
+
+# 3. Configure provider
+export LLM_PROVIDER=ollama
+export LLM_ENDPOINT=http://localhost:11434
+export LLM_MODEL=codellama:70b
+
+# 4. Run SecureShell AI
+bun run src/entrypoints/cli.tsx
+```
+
+### Docker
+
+```bash
+# Build air-gapped image
+docker build -t secureshell-ai .
+
+# Run with local Ollama
+docker run --rm \
+  -e LLM_PROVIDER=ollama \
+  -e LLM_ENDPOINT=http://host.docker.internal:11434 \
+  -e LLM_MODEL=codellama:70b \
+  -v $(pwd):/workspace \
+  secureshell-ai
+```
+
+### Kubernetes (Helm)
+
+```bash
+# Install with Helm
+helm install secureshell-ai ./helm/secureshell-ai \
+  -f my-values.yaml \
+  --set config.llmProvider=vllm \
+  --set config.llmEndpoint=http://inference-server.internal:8000 \
+  --set config.llmModel=deepseek-coder-v2
 ```
 
 ---
 
-## Directory Structure
+## Configuration
 
-```
-src/
-├── main.tsx                 # Entrypoint — Commander.js CLI parser + React/Ink renderer
-├── QueryEngine.ts           # Core LLM API caller (~46K lines)
-├── Tool.ts                  # Tool type definitions (~29K lines)
-├── commands.ts              # Command registry (~25K lines)
-├── tools.ts                 # Tool registry
-├── context.ts               # System/user context collection
-├── cost-tracker.ts          # Token cost tracking
-│
-├── tools/                   # Agent tool implementations (~40)
-├── commands/                # Slash command implementations (~50)
-├── components/              # Ink UI components (~140)
-├── services/                # External service integrations
-├── hooks/                   # React hooks (incl. permission checks)
-├── types/                   # TypeScript type definitions
-├── utils/                   # Utility functions
-├── screens/                 # Full-screen UIs (Doctor, REPL, Resume)
-│
-├── bridge/                  # IDE integration (VS Code, JetBrains)
-├── coordinator/             # Multi-agent orchestration
-├── plugins/                 # Plugin system
-├── skills/                  # Skill system
-├── server/                  # Server mode
-├── remote/                  # Remote sessions
-├── memdir/                  # Persistent memory directory
-├── tasks/                   # Task management
-├── state/                   # State management
-│
-├── voice/                   # Voice input
-├── vim/                     # Vim mode
-├── keybindings/             # Keybinding configuration
-├── schemas/                 # Config schemas (Zod)
-├── migrations/              # Config migrations
-├── entrypoints/             # Initialization logic
-├── query/                   # Query pipeline
-├── ink/                     # Ink renderer wrapper
-├── buddy/                   # Companion sprite (Easter egg 🐣)
-├── native-ts/               # Native TypeScript utils
-├── outputStyles/            # Output styling
-└── upstreamproxy/           # Proxy configuration
-```
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `LLM_PROVIDER` | Yes | - | LLM provider: `ollama`, `vllm`, `llamacpp`, `tgi`, `bedrock-govcloud`, `azure-govcloud`, `custom` |
+| `LLM_ENDPOINT` | Yes | - | LLM API endpoint URL |
+| `LLM_MODEL` | Yes | - | Model name/identifier |
+| `LLM_API_KEY` | No | - | API key (if required by provider) |
+| `LLM_MAX_TOKENS` | No | `4096` | Maximum output tokens |
+| `LLM_CONTEXT_WINDOW` | No | `8192` | Context window size |
+| `LLM_SUPPORTS_TOOLS` | No | `auto` | Whether model supports tool calling (`true`, `false`, `auto`) |
+| `LLM_TOOL_CALL_FORMAT` | No | `auto` | Tool call format: `anthropic`, `openai`, `hermes`, `auto` |
+| `AUTH_PROVIDER` | No | `apikey` | Auth method: `apikey`, `cac`, `ldap`, `mtls` |
+| `CLASSIFICATION_MODE` | No | `disabled` | Classification enforcement: `disabled`, `warn`, `enforce` |
+| `CLASSIFICATION_CONFIG` | No | `.classification.json` | Path to classification manifest |
+| `AUDIT_ENABLED` | No | `true` | Enable immutable audit logging |
+| `AUDIT_OUTPUT` | No | `~/.secureshell/audit/` | Audit log output directory |
+| `AUDIT_FORMAT` | No | `jsonl` | Audit format: `jsonl`, `syslog`, `splunk` |
+| `PERMISSION_MODE` | No | `default` | Permission mode: `default`, `plan`, `il4`, `il5`, `scif`, `custom-policy` |
+| `FEATURE_CONFIG` | No | `~/.secureshell/features.json` | Static feature flag config file |
 
 ---
 
 ## Architecture
 
-### 1. Tool System
+### System Pipeline
 
-> `src/tools/` — Every tool Claude can invoke is a self-contained module with its own input schema, permission model, and execution logic.
-
-| Tool | Description |
-|---|---|
-| **File I/O** | |
-| `FileReadTool` | Read files (images, PDFs, notebooks) |
-| `FileWriteTool` | Create / overwrite files |
-| `FileEditTool` | Partial modification (string replacement) |
-| `NotebookEditTool` | Jupyter notebook editing |
-| **Search** | |
-| `GlobTool` | File pattern matching |
-| `GrepTool` | ripgrep-based content search |
-| `WebSearchTool` | Web search |
-| `WebFetchTool` | Fetch URL content |
-| **Execution** | |
-| `BashTool` | Shell command execution |
-| `SkillTool` | Skill execution |
-| `MCPTool` | MCP server tool invocation |
-| `LSPTool` | Language Server Protocol integration |
-| **Agents & Teams** | |
-| `AgentTool` | Sub-agent spawning |
-| `SendMessageTool` | Inter-agent messaging |
-| `TeamCreateTool` / `TeamDeleteTool` | Team management |
-| `TaskCreateTool` / `TaskUpdateTool` | Task management |
-| **Mode & State** | |
-| `EnterPlanModeTool` / `ExitPlanModeTool` | Plan mode toggle |
-| `EnterWorktreeTool` / `ExitWorktreeTool` | Git worktree isolation |
-| `ToolSearchTool` | Deferred tool discovery |
-| `SleepTool` | Proactive mode wait |
-| `CronCreateTool` | Scheduled triggers |
-| `RemoteTriggerTool` | Remote trigger |
-| `SyntheticOutputTool` | Structured output generation |
-
-### 2. Command System
-
-> `src/commands/` — User-facing slash commands invoked with `/` in the REPL.
-
-| Command | Description | | Command | Description |
-|---|---|---|---|---|
-| `/commit` | Git commit | | `/memory` | Persistent memory |
-| `/review` | Code review | | `/skills` | Skill management |
-| `/compact` | Context compression | | `/tasks` | Task management |
-| `/mcp` | MCP server management | | `/vim` | Vim mode toggle |
-| `/config` | Settings | | `/diff` | View changes |
-| `/doctor` | Environment diagnostics | | `/cost` | Check usage cost |
-| `/login` / `/logout` | Auth | | `/theme` | Change theme |
-| `/context` | Context visualization | | `/share` | Share session |
-| `/pr_comments` | PR comments | | `/resume` | Restore session |
-| `/desktop` | Desktop handoff | | `/mobile` | Mobile handoff |
-
-### 3. Service Layer
-
-> `src/services/` — External integrations and core infrastructure.
-
-| Service | Description |
-|---|---|
-| `api/` | Anthropic API client, file API, bootstrap |
-| `mcp/` | Model Context Protocol connection & management |
-| `oauth/` | OAuth 2.0 authentication |
-| `lsp/` | Language Server Protocol manager |
-| `analytics/` | GrowthBook feature flags & analytics |
-| `plugins/` | Plugin loader |
-| `compact/` | Conversation context compression |
-| `extractMemories/` | Automatic memory extraction |
-| `teamMemorySync/` | Team memory synchronization |
-| `tokenEstimation.ts` | Token count estimation |
-| `policyLimits/` | Organization policy limits |
-| `remoteManagedSettings/` | Remote managed settings |
-
-### 4. Bridge System
-
-> `src/bridge/` — Bidirectional communication layer connecting IDE extensions (VS Code, JetBrains) with the CLI.
-
-Key files: `bridgeMain.ts` (main loop) · `bridgeMessaging.ts` (protocol) · `bridgePermissionCallbacks.ts` (permission callbacks) · `replBridge.ts` (REPL session) · `jwtUtils.ts` (JWT auth) · `sessionRunner.ts` (session execution)
-
-### 5. Permission System
-
-> `src/hooks/toolPermission/` — Checks permissions on every tool invocation.
-
-Prompts the user for approval/denial or auto-resolves based on the configured permission mode: `default`, `plan`, `bypassPermissions`, `auto`, etc.
-
-### 6. Feature Flags
-
-Dead code elimination at build time via Bun's `bun:bundle`:
-
-```typescript
-import { feature } from 'bun:bundle'
-
-const voiceCommand = feature('VOICE_MODE')
-  ? require('./commands/voice/index.js').default
-  : null
+```
+User Input --> CLI Parser --> Query Engine --> LLM Router --> Provider Adapter
+                                  ^                               |
+                                  |                               v
+                              Tool Results <-- Tool Executor <-- LLM Response
+                                  |               |
+                                  v               v
+                              Audit Log     Permission Engine
+                                               |
+                                               v
+                                        Classification Check
 ```
 
-Notable flags: `PROACTIVE` · `KAIROS` · `BRIDGE_MODE` · `DAEMON` · `VOICE_MODE` · `AGENT_TRIGGERS` · `MONITOR_TOOL`
+### Directory Structure
 
----
-
-## Key Files
-
-| File | Lines | Purpose |
-|------|------:|---------|
-| `QueryEngine.ts` | ~46K | Core LLM API engine — streaming, tool loops, thinking mode, retries, token counting |
-| `Tool.ts` | ~29K | Base types/interfaces for all tools — input schemas, permissions, progress state |
-| `commands.ts` | ~25K | Command registration & execution with conditional per-environment imports |
-| `main.tsx` | — | CLI parser + React/Ink renderer; parallelizes MDM, keychain, and GrowthBook on startup |
-
----
-
-## Tech Stack
-
-| Category | Technology |
-|---|---|
-| Runtime | [Bun](https://bun.sh) |
-| Language | TypeScript (strict) |
-| Terminal UI | [React](https://react.dev) + [Ink](https://github.com/vadimdemedes/ink) |
-| CLI Parsing | [Commander.js](https://github.com/tj/commander.js) (extra-typings) |
-| Schema Validation | [Zod v4](https://zod.dev) |
-| Code Search | [ripgrep](https://github.com/BurntSushi/ripgrep) (via GrepTool) |
-| Protocols | [MCP SDK](https://modelcontextprotocol.io) · LSP |
-| API | [Anthropic SDK](https://docs.anthropic.com) |
-| Telemetry | OpenTelemetry + gRPC |
-| Feature Flags | GrowthBook |
-| Auth | OAuth 2.0 · JWT · macOS Keychain |
-
----
-
-## Design Patterns
-
-<details>
-<summary><strong>Parallel Prefetch</strong> — Startup optimization</summary>
-
-MDM settings, keychain reads, and API preconnect fire in parallel as side-effects before heavy module evaluation:
-
-```typescript
-// main.tsx
-startMdmRawRead()
-startKeychainPrefetch()
+```
+src/
++-- entrypoints/             # CLI, SDK entry points
++-- services/
+|   +-- api/                 # LLM provider abstraction layer
+|   |   +-- client.ts        # Provider adapter factory
+|   |   +-- providers/       # Individual provider adapters
+|   |   |   +-- ollama.ts
+|   |   |   +-- vllm.ts
+|   |   |   +-- llamacpp.ts
+|   |   |   +-- tgi.ts
+|   |   |   +-- bedrock-govcloud.ts
+|   |   |   +-- custom.ts
+|   |   +-- messageFormat.ts # Message format translation layer
+|   |   +-- toolFormat.ts    # Tool schema translation layer
+|   +-- audit/               # Immutable audit logging
+|   +-- classification/      # Data classification engine
+|   +-- auth/                # Authentication (CAC/PIV, LDAP, mTLS)
++-- tools/                   # Agent tool implementations
+|   +-- BashTool/
+|   +-- FileEditTool/
+|   +-- GrepTool/
+|   +-- AuditLogTool/        # Defense: audit log access
+|   +-- STIGCheckTool/       # Defense: STIG compliance
+|   +-- SBOMTool/            # Defense: SBOM generation
+|   +-- ClassificationTool/  # Defense: file classification
++-- utils/
+|   +-- permissions/         # Classification-aware permission engine
+|   +-- model/               # Model configuration and selection
++-- components/              # React/Ink terminal UI
++-- hooks/                   # React hooks
++-- state/                   # Application state management
++-- types/                   # TypeScript type definitions
+helm/
++-- secureshell-ai/          # Kubernetes Helm chart
+docker/                      # Docker configurations
+config/                      # Default configuration files
 ```
 
-</details>
-
-<details>
-<summary><strong>Lazy Loading</strong> — Deferred heavy modules</summary>
-
-OpenTelemetry (~400KB) and gRPC (~700KB) are loaded via dynamic `import()` only when needed.
-
-</details>
-
-<details>
-<summary><strong>Agent Swarms</strong> — Multi-agent orchestration</summary>
-
-Sub-agents spawn via `AgentTool`, with `coordinator/` handling orchestration. `TeamCreateTool` enables team-level parallel work.
-
-</details>
-
-<details>
-<summary><strong>Skill System</strong> — Reusable workflows</summary>
-
-Defined in `skills/` and executed through `SkillTool`. Users can add custom skills.
-
-</details>
-
-<details>
-<summary><strong>Plugin Architecture</strong> — Extensibility</summary>
-
-Built-in and third-party plugins loaded through the `plugins/` subsystem.
-
-</details>
-
 ---
 
-## GitPretty Setup
-
-<details>
-<summary>Show per-file emoji commit messages in GitHub's file UI</summary>
+## Development
 
 ```bash
-# Apply emoji commits
-bash ./gitpretty-apply.sh .
+# Install dependencies
+bun install
 
-# Optional: install hooks for future commits
-bash ./gitpretty-apply.sh . --hooks
+# Run in development mode
+bun run dev
 
-# Push as usual
-git push origin main
+# Type checking
+bun run typecheck
+
+# Linting
+bun run lint
+
+# Run tests
+bun run test
+
+# Build production bundle
+bun run build:prod
 ```
 
-</details>
+---
+
+## Roadmap
+
+### Phase 1 -- Foundation (Current)
+- [x] Project identity and README
+- [ ] LLM provider abstraction layer with adapter pattern
+- [ ] Core tool system (Bash, File I/O, Search)
+- [ ] Basic terminal UI
+- [ ] Static feature configuration (replace GrowthBook)
+
+### Phase 2 -- Air-Gap Hardening
+- [ ] Strip all external phone-home code
+- [ ] Local-only authentication (API key)
+- [ ] Replace remote settings with local config
+- [ ] Air-gapped Docker image
+
+### Phase 3 -- Defense Features
+- [ ] Classification-aware permission engine
+- [ ] Immutable audit logging with hash chains
+- [ ] CAC/PIV authentication
+- [ ] STIG compliance checking tool
+- [ ] SBOM generation tool
+
+### Phase 4 -- Deployment
+- [ ] Helm chart with GPU scheduling and NetworkPolicy
+- [ ] Model weight management for air-gapped networks
+- [ ] mTLS between all components
+- [ ] Grafana dashboards for audit metrics
+
+### Phase 5 -- Compliance
+- [ ] IL4/IL5 compliance documentation
+- [ ] FedRAMP authorization package
+- [ ] Penetration testing
+- [ ] ATO support documentation
 
 ---
 
-## Contributing
+## License
 
-Contributions to documentation, the MCP server, and exploration tooling are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-> **Note:** The `src/` directory is the original source and should not be modified.
+Proprietary. All rights reserved.
 
 ---
 
-## Disclaimer
+<div align="center">
 
-This repository contains source code from Anthropic's Claude Code, made publicly available on **2026-03-31**. All original source code is the property of [Anthropic](https://www.anthropic.com). Contact [nichxbt](https://www.x.com/nichxbt) for any questions or comments.
+**SecureShell AI** -- AI-powered coding. Zero data exfiltration.
+
+</div>
