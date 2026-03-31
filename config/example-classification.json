@@ -1,0 +1,40 @@
+{
+  "$schema": "./classification-schema.json",
+  "_comment": "Example classification manifest. Place as .classification.json in your project root.",
+
+  "default": "CUI",
+  "rules": [
+    {
+      "pattern": "docs/public/**",
+      "level": "UNCLASSIFIED"
+    },
+    {
+      "pattern": "README.md",
+      "level": "UNCLASSIFIED"
+    },
+    {
+      "pattern": "LICENSE",
+      "level": "UNCLASSIFIED"
+    },
+    {
+      "pattern": "src/crypto/**",
+      "level": "SECRET"
+    },
+    {
+      "pattern": "**/*.key",
+      "level": "TOP_SECRET"
+    },
+    {
+      "pattern": "**/*.pem",
+      "level": "SECRET"
+    },
+    {
+      "pattern": "**/*.env",
+      "level": "SECRET"
+    },
+    {
+      "pattern": "config/secrets/**",
+      "level": "TOP_SECRET"
+    }
+  ]
+}

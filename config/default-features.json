@@ -1,0 +1,35 @@
+{
+  "$schema": "./features-schema.json",
+  "_comment": "SecureShell AI — Default Feature Configuration. Copy to ~/.secureshell/features.json to customize.",
+
+  "tool_search": true,
+  "todo_v2": true,
+  "agent_swarms": false,
+  "file_edit_strict": true,
+
+  "classification_enabled": false,
+  "audit_enabled": true,
+  "stig_checks_enabled": false,
+  "sbom_generation_enabled": false,
+
+  "disable_telemetry": true,
+  "disable_remote_settings": true,
+  "disable_remote_policy": true,
+  "disable_oauth": true,
+  "disable_web_fetch": true,
+  "disable_web_search": true,
+  "disable_mcp_registry": true,
+
+  "vim_mode": true,
+  "voice_mode": false,
+  "desktop_mode": false,
+  "mobile_mode": false,
+
+  "proactive_mode": false,
+  "agent_triggers": false,
+  "agent_triggers_remote": false,
+  "monitor_tool": false,
+
+  "transcript_classifier": false,
+  "bash_classifier": false
+}

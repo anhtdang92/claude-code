@@ -1,0 +1,13 @@
+{
+  "$schema": "./settings-schema.json",
+  "_comment": "SecureShell AI — Default Managed Settings. Copy to ~/.secureshell/settings.json to customize.",
+
+  "permissionMode": "default",
+  "maxConcurrentSessions": 5,
+  "maxTokensPerRequest": 4096,
+  "allowedTools": [],
+  "deniedTools": ["WebFetchTool", "WebSearchTool"],
+  "contextWindowSize": 8192,
+  "auditEnabled": true,
+  "classificationMode": "disabled"
+}

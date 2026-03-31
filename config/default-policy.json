@@ -1,0 +1,17 @@
+{
+  "$schema": "./policy-schema.json",
+  "_comment": "SecureShell AI — Default Policy Limits. Copy to ~/.secureshell/policy.json and customize for your organization.",
+
+  "maxTokensPerHour": 1000000,
+  "maxSessionsPerUser": 10,
+  "maxConcurrentAgents": 5,
+  "allowedPermissionModes": ["default", "plan", "il4", "il5"],
+  "deniedPermissionModes": ["bypassPermissions"],
+  "requiredAuditFormat": "jsonl",
+  "minimumClassificationLevel": "UNCLASSIFIED",
+  "allowedProviders": ["ollama", "vllm", "llamacpp", "tgi", "bedrock-govcloud", "azure-govcloud", "custom"],
+  "networkPolicy": {
+    "allowEgress": false,
+    "allowedEndpoints": []
+  }
+}

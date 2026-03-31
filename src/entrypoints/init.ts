@@ -7,22 +7,13 @@ import { getIsNonInteractiveSession } from 'src/bootstrap/state.js'
 import type { AttributedCounter } from '../bootstrap/state.js'
 import { getSessionCounter, setMeter } from '../bootstrap/state.js'
 import { shutdownLspServerManager } from '../services/lsp/manager.js'
-import { populateOAuthAccountInfoIfNeeded } from '../services/oauth/client.js'
-import {
-  initializePolicyLimitsLoadingPromise,
-  isPolicyLimitsEligible,
-} from '../services/policyLimits/index.js'
-import {
-  initializeRemoteManagedSettingsLoadingPromise,
-  isEligibleForRemoteManagedSettings,
-  waitForRemoteManagedSettingsToLoad,
-} from '../services/remoteManagedSettings/index.js'
-import { preconnectAnthropicApi } from '../utils/apiPreconnect.js'
+// SecureShell AI: Removed Anthropic-specific imports (OAuth, remote settings, policy limits, preconnect)
+// These are replaced by local-only alternatives initialized below.
 import { applyExtraCACertsFromConfig } from '../utils/caCertsConfig.js'
 import { registerCleanup } from '../utils/cleanupRegistry.js'
 import { enableConfigs, recordFirstStartTime } from '../utils/config.js'
 import { logForDebugging } from '../utils/debug.js'
-import { detectCurrentRepository } from '../utils/detectRepository.js'
+// SecureShell AI: detectCurrentRepository removed (network call in air-gapped mode)
 import { logForDiagnosticsNoPII } from '../utils/diagLogs.js'
 import { initJetBrainsDetection } from '../utils/envDynamic.js'
 import { isEnvTruthy } from '../utils/envUtils.js'
@@ -33,7 +24,6 @@ import {
   setupGracefulShutdown,
 } from '../utils/gracefulShutdown.js'
 import {
-  applyConfigEnvironmentVariables,
   applySafeConfigEnvironmentVariables,
 } from '../utils/managedEnv.js'
 import { configureGlobalMTLS } from '../utils/mtls.js'
@@ -45,7 +35,7 @@ import {
 // ~400KB of OpenTelemetry + protobuf modules until telemetry is actually initialized.
 // gRPC exporters (~700KB via @grpc/grpc-js) are further lazy-loaded within instrumentation.ts.
 import { configureGlobalAgents } from '../utils/proxy.js'
-import { isBetaTracingEnabled } from '../utils/telemetry/betaSessionTracing.js'
+// SecureShell AI: isBetaTracingEnabled removed (was used for remote settings path)
 import { getTelemetryAttributes } from '../utils/telemetryAttributes.js'
 import { setShellIfWindows } from '../utils/windowsPaths.js'
 
@@ -87,46 +77,48 @@ export const init = memoize(async (): Promise<void> => {
     setupGracefulShutdown()
     profileCheckpoint('init_after_graceful_shutdown')
 
-    // Initialize 1P event logging (no security concerns, but deferred to avoid
-    // loading OpenTelemetry sdk-logs at startup). growthbook.js is already in
-    // the module cache by this point (firstPartyEventLogger imports it), so the
-    // second dynamic import adds no load cost.
-    void Promise.all([
-      import('../services/analytics/firstPartyEventLogger.js'),
-      import('../services/analytics/growthbook.js'),
-    ]).then(([fp, gb]) => {
-      fp.initialize1PEventLogging()
-      // Rebuild the logger provider if tengu_1p_event_batch_config changes
-      // mid-session. Change detection (isEqual) is inside the handler so
-      // unchanged refreshes are no-ops.
-      gb.onGrowthBookRefresh(() => {
-        void fp.reinitialize1PEventLoggingIfConfigChanged()
+    // ── SecureShell AI: Static feature flags (replaces GrowthBook remote fetch) ──
+    void import('../services/config/staticFeatures.js').then((sf) => {
+      sf.loadFeatures()
+      logForDebugging('[init] Static feature flags loaded')
+    })
+    profileCheckpoint('init_after_static_features')
+
+    // ── SecureShell AI: Initialize audit logger ──
+    void import('../services/audit/index.js').then((audit) => {
+      audit.initAuditLogger().then(() => {
+        logForDebugging('[init] Audit logger initialized')
+      }).catch((err) => {
+        logForDebugging(
+          `[init] Audit logger init failed: ${err instanceof Error ? err.message : String(err)}`,
+          { level: 'warn' },
+        )
       })
     })
-    profileCheckpoint('init_after_1p_event_logging')
+    profileCheckpoint('init_after_audit_logger')
 
-    // Populate OAuth account info if it is not already cached in config. This is needed since the
-    // OAuth account info may not be populated when logging in through the VSCode extension.
-    void populateOAuthAccountInfoIfNeeded()
-    profileCheckpoint('init_after_oauth_populate')
+    // ── SecureShell AI: Initialize auth provider ──
+    void import('../services/auth/index.js').then((auth) => {
+      auth.initializeAuth().then(() => {
+        logForDebugging('[init] Auth provider initialized')
+      }).catch((err) => {
+        logForDebugging(
+          `[init] Auth provider init failed: ${err instanceof Error ? err.message : String(err)}`,
+          { level: 'warn' },
+        )
+      })
+    })
+    profileCheckpoint('init_after_auth_provider')
 
     // Initialize JetBrains IDE detection asynchronously (populates cache for later sync access)
     void initJetBrainsDetection()
     profileCheckpoint('init_after_jetbrains_detection')
 
-    // Detect GitHub repository asynchronously (populates cache for gitDiff PR linking)
-    void detectCurrentRepository()
-
-    // Initialize the loading promise early so that other systems (like plugin hooks)
-    // can await remote settings loading. The promise includes a timeout to prevent
-    // deadlocks if loadRemoteManagedSettings() is never called (e.g., Agent SDK tests).
-    if (isEligibleForRemoteManagedSettings()) {
-      initializeRemoteManagedSettingsLoadingPromise()
-    }
-    if (isPolicyLimitsEligible()) {
-      initializePolicyLimitsLoadingPromise()
-    }
-    profileCheckpoint('init_after_remote_settings_check')
+    // ── SecureShell AI: Local-only settings (replaces remote managed settings) ──
+    // In air-gapped mode, settings are loaded from local files only.
+    // Remote settings and policy limits are disabled.
+    logForDebugging('[init] Air-gapped mode: remote settings and policy limits disabled')
+    profileCheckpoint('init_after_local_settings')
 
     // Record the first start time
     recordFirstStartTime()
@@ -150,13 +142,23 @@ export const init = memoize(async (): Promise<void> => {
     logForDebugging('[init] configureGlobalAgents complete')
     profileCheckpoint('init_network_configured')
 
-    // Preconnect to the Anthropic API — overlap TCP+TLS handshake
-    // (~100-200ms) with the ~100ms of action-handler work before the API
-    // request. After CA certs + proxy agents are configured so the warmed
-    // connection uses the right transport. Fire-and-forget; skipped for
-    // proxy/mTLS/unix/cloud-provider where the SDK's dispatcher wouldn't
-    // reuse the global pool.
-    preconnectAnthropicApi()
+    // ── SecureShell AI: Preconnect to configured LLM endpoint ──
+    // In air-gapped mode, preconnect to the local/internal LLM endpoint
+    // instead of the Anthropic API.
+    void import('../services/api/providers/index.js').then(async (providers) => {
+      try {
+        const client = await providers.getLLMClient()
+        if (client.healthCheck) {
+          const healthy = await client.healthCheck()
+          logForDebugging(`[init] LLM provider health check: ${healthy ? 'OK' : 'FAILED'}`)
+        }
+      } catch (err) {
+        logForDebugging(
+          `[init] LLM provider preconnect failed: ${err instanceof Error ? err.message : String(err)}`,
+          { level: 'warn' },
+        )
+      }
+    })
 
     // CCR upstreamproxy: start the local CONNECT relay so agent subprocesses
     // can reach org-configured upstreams with credential injection. Gated on
@@ -239,50 +241,17 @@ export const init = memoize(async (): Promise<void> => {
 
 /**
  * Initialize telemetry after trust has been granted.
- * For remote-settings-eligible users, waits for settings to load (non-blocking),
- * then re-applies env vars (to include remote settings) before initializing telemetry.
- * For non-eligible users, initializes telemetry immediately.
+ * SecureShell AI: Simplified — no remote settings dependency.
+ * Telemetry is local-only (OTLP to internal collector) when enabled.
  * This should only be called once, after the trust dialog has been accepted.
  */
 export function initializeTelemetryAfterTrust(): void {
-  if (isEligibleForRemoteManagedSettings()) {
-    // For SDK/headless mode with beta tracing, initialize eagerly first
-    // to ensure the tracer is ready before the first query runs.
-    // The async path below will still run but doInitializeTelemetry() guards against double init.
-    if (getIsNonInteractiveSession() && isBetaTracingEnabled()) {
-      void doInitializeTelemetry().catch(error => {
-        logForDebugging(
-          `[3P telemetry] Eager telemetry init failed (beta tracing): ${errorMessage(error)}`,
-          { level: 'error' },
-        )
-      })
-    }
+  void doInitializeTelemetry().catch(error => {
     logForDebugging(
-      '[3P telemetry] Waiting for remote managed settings before telemetry init',
+      `[telemetry] Telemetry init failed: ${errorMessage(error)}`,
+      { level: 'error' },
     )
-    void waitForRemoteManagedSettingsToLoad()
-      .then(async () => {
-        logForDebugging(
-          '[3P telemetry] Remote managed settings loaded, initializing telemetry',
-        )
-        // Re-apply env vars to pick up remote settings before initializing telemetry.
-        applyConfigEnvironmentVariables()
-        await doInitializeTelemetry()
-      })
-      .catch(error => {
-        logForDebugging(
-          `[3P telemetry] Telemetry init failed (remote settings path): ${errorMessage(error)}`,
-          { level: 'error' },
-        )
-      })
-  } else {
-    void doInitializeTelemetry().catch(error => {
-      logForDebugging(
-        `[3P telemetry] Telemetry init failed: ${errorMessage(error)}`,
-        { level: 'error' },
-      )
-    })
-  }
+  })
 }
 
 async function doInitializeTelemetry(): Promise<void> {

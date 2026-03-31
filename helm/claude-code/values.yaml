@@ -1,9 +1,9 @@
-# Default values for claude-code Helm chart.
-# Override with: helm install claude-code ./helm/claude-code -f my-values.yaml
+# Default values for SecureShell AI Helm chart.
+# Override with: helm install secureshell-ai ./helm/claude-code -f my-values.yaml
 
 # ── Image ──────────────────────────────────────────────────────────────────────
 image:
-  repository: ghcr.io/anthropics/claude-code-web
+  repository: secureshell-ai
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -55,6 +55,15 @@ resources:
     memory: "512Mi"
     cpu: "500m"
 
+# ── GPU Resources (for local inference) ────────────────────────────────────────
+gpu:
+  enabled: false
+  # Uncomment for GPU-accelerated inference pods
+  # requests:
+  #   nvidia.com/gpu: 1
+  # limits:
+  #   nvidia.com/gpu: 1
+
 # ── Service ────────────────────────────────────────────────────────────────────
 service:
   type: ClusterIP
@@ -67,35 +76,53 @@ ingress:
   enabled: false
   className: ""
   annotations: {}
-    # cert-manager.io/cluster-issuer: letsencrypt-prod
-    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    # nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    # nginx.ingress.kubernetes.io/proxy-buffering: "off"
-    # nginx.ingress.kubernetes.io/websocket-services: "claude-code"
   hosts:
-    - host: claude.example.com
+    - host: secureshell.internal
       paths:
         - path: /
           pathType: Prefix
   tls: []
-  # - secretName: claude-tls
-  #   hosts:
-  #     - claude.example.com
 
-# ── Application configuration ──────────────────────────────────────────────────
+# ── Network Policy (Air-Gap Enforcement) ───────────────────────────────────────
+networkPolicy:
+  enabled: true
+  # Deny all egress by default (air-gapped mode)
+  denyAllEgress: true
+  # Allow egress only to the inference server
+  allowedEgress:
+    - podSelector:
+        matchLabels:
+          app: inference-server
+    # Allow DNS resolution within cluster
+    - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+# ── LLM Provider Configuration ────────────────────────────────────────────────
 config:
-  # Auth provider: token | oauth | apikey
-  authProvider: token
+  # LLM provider: ollama | vllm | llamacpp | tgi | bedrock-govcloud | azure-govcloud | custom
+  llmProvider: "ollama"
+  # LLM API endpoint
+  llmEndpoint: "http://inference-server.default.svc.cluster.local:11434"
+  # Model name
+  llmModel: ""
+  # Auth provider: apikey | cac | ldap | mtls
+  authProvider: "apikey"
+  # Permission mode: default | plan | il4 | il5 | scif
+  permissionMode: "default"
+  # Classification mode: disabled | warn | enforce
+  classificationMode: "disabled"
+  # Audit format: jsonl | syslog | splunk
+  auditFormat: "jsonl"
   # Maximum total concurrent sessions across all users
   maxSessions: "50"
   # Max concurrent sessions per user
   maxSessionsPerUser: "5"
   # Max new sessions per user per hour
   maxSessionsPerHour: "20"
-  # Comma-separated allowed WebSocket origins (empty = allow all)
-  allowedOrigins: ""
-  # Optional model override
-  anthropicModel: ""
   # Log level
   nodeEnv: production
 
@@ -103,12 +130,14 @@ config:
 # Set these via --set or a separate sealed-secret / external-secrets resource.
 # NEVER commit real values here.
 secrets:
-  # Anthropic API key (required)
-  anthropicApiKey: ""
+  # LLM API key (optional, depends on provider)
+  llmApiKey: ""
   # Static auth token for token provider (optional)
   authToken: ""
   # Cookie/session signing key — generate with: openssl rand -hex 32
   sessionSecret: ""
+  # Audit log HMAC signing key — generate with: openssl rand -base64 32
+  auditSigningKey: ""
   # Name of an existing secret to use instead of creating one
   existingSecret: ""
 
@@ -120,6 +149,15 @@ persistence:
   size: 10Gi
   # Mount path inside the container
   mountPath: /data
+
+# ── Model Weights Storage ─────────────────────────────────────────────────────
+modelWeights:
+  enabled: false
+  # PVC for pre-downloaded model weights (for air-gapped inference)
+  # storageClass: ""
+  accessMode: ReadOnlyMany
+  size: 100Gi
+  mountPath: /models
 
 # ── Probes ─────────────────────────────────────────────────────────────────────
 livenessProbe:
@@ -145,5 +183,7 @@ affinity: {}
 
 # ── Extra environment variables ────────────────────────────────────────────────
 extraEnv: []
-# - name: CLAUDE_CODE_SHELL
-#   value: /bin/bash
+# - name: AUDIT_ENABLED
+#   value: "true"
+# - name: USER_CLEARANCE
+#   value: "SECRET"
