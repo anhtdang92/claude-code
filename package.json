@@ -1,7 +1,7 @@
 {
-  "name": "@anthropic-ai/claude-code",
-  "version": "0.0.0-leaked",
-  "description": "Anthropic Claude Code CLI — leaked source (2026-03-31). Not an official release.",
+  "name": "secureshell-ai",
+  "version": "0.1.0",
+  "description": "SecureShell AI — Air-gapped, LLM-agnostic AI coding terminal for defense and classified environments.",
   "license": "UNLICENSED",
   "private": true,
   "type": "module",
