@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, FolderOpen, Settings, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
+import { MessageSquare, FolderOpen, Settings, ChevronLeft, ChevronRight, Clock, Search, Layers } from "lucide-react";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ChatHistory } from "./ChatHistory";
@@ -181,6 +181,17 @@ export function Sidebar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Architecture link */}
+      {sidebarOpen && (
+        <a
+          href="/architecture"
+          className="mx-3 mb-2 flex items-center gap-2 rounded-lg border border-brand-500/20 bg-brand-500/10 px-3 py-2 text-xs font-medium text-brand-300 hover:bg-brand-500/20 transition-colors"
+        >
+          <Layers className="h-3.5 w-3.5" />
+          Architecture Explorer
+        </a>
+      )}
 
       {sidebarOpen && <QuickActions />}
 
