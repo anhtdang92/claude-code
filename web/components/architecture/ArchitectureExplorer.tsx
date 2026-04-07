@@ -256,25 +256,20 @@ function DetailPanel({
             Dependencies
           </h3>
           <div className="flex flex-wrap gap-1.5">
-            {module.dependencies.map((dep) => {
-              const depConfig = layerConfig[
-                Object.keys(layerConfig).find((k) => k === dep) ?? "infra"
-              ];
-              return (
-                <button
-                  key={dep}
-                  onClick={() => onNavigate(dep)}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-mono transition-colors",
-                    "bg-surface-800 border border-surface-700 text-surface-300",
-                    "hover:border-surface-600 hover:text-surface-100"
-                  )}
-                >
-                  <ArrowRight className="h-3 w-3 text-surface-500" />
-                  {dep}/
-                </button>
-              );
-            })}
+            {module.dependencies.map((dep) => (
+              <button
+                key={dep}
+                onClick={() => onNavigate(dep)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-mono transition-colors",
+                  "bg-surface-800 border border-surface-700 text-surface-300",
+                  "hover:border-surface-600 hover:text-surface-100"
+                )}
+              >
+                <ArrowRight className="h-3 w-3 text-surface-500" />
+                {dep}/
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -352,10 +347,12 @@ function DetailPanel({
 
 function DependencyGraph({
   modules,
+  highlightedNames,
   selectedModule,
   onSelect,
 }: {
   modules: ModuleInfo[];
+  highlightedNames: Set<string>;
   selectedModule: string | null;
   onSelect: (name: string) => void;
 }) {
@@ -384,21 +381,27 @@ function DependencyGraph({
   }, [modules]);
 
   const edges = useMemo(() => {
-    const result: { from: string; to: string; highlighted: boolean }[] = [];
+    const result: {
+      from: string;
+      to: string;
+      highlighted: boolean;
+      filteredOut: boolean;
+    }[] = [];
     for (const mod of modules) {
+      const fromInHighlight = highlightedNames.has(mod.name);
       for (const dep of mod.dependencies) {
-        if (positions[dep]) {
-          result.push({
-            from: mod.name,
-            to: dep,
-            highlighted:
-              selectedModule === mod.name || selectedModule === dep,
-          });
-        }
+        if (!positions[dep]) continue;
+        const toInHighlight = highlightedNames.has(dep);
+        result.push({
+          from: mod.name,
+          to: dep,
+          highlighted: selectedModule === mod.name || selectedModule === dep,
+          filteredOut: !fromInHighlight || !toInHighlight,
+        });
       }
     }
     return result;
-  }, [modules, positions, selectedModule]);
+  }, [modules, positions, selectedModule, highlightedNames]);
 
   const svgHeight = layerOrder.length * 90 + 40;
 
@@ -462,11 +465,18 @@ function DependencyGraph({
         })}
 
         {/* Edges */}
-        {edges.map(({ from, to, highlighted }) => {
+        {edges.map(({ from, to, highlighted, filteredOut }) => {
           const p1 = positions[from];
           const p2 = positions[to];
           if (!p1 || !p2) return null;
           const midY = (p1.y + p2.y) / 2;
+          const opacity = filteredOut
+            ? 0.05
+            : selectedModule
+              ? highlighted
+                ? 1
+                : 0.15
+              : 0.5;
           return (
             <path
               key={`${from}-${to}`}
@@ -475,7 +485,7 @@ function DependencyGraph({
               stroke={highlighted ? "#8b5cf6" : "#333"}
               strokeWidth={highlighted ? 2 : 1}
               strokeDasharray={highlighted ? "none" : "4 4"}
-              opacity={selectedModule ? (highlighted ? 1 : 0.15) : 0.5}
+              opacity={opacity}
               markerEnd={highlighted ? "url(#arrowhead-active)" : "url(#arrowhead)"}
               className="transition-all duration-300"
             />
@@ -486,17 +496,32 @@ function DependencyGraph({
         {modules.map((mod) => {
           const pos = positions[mod.name];
           if (!pos) return null;
-          const config = layerConfig[mod.layer];
           const isActive = selectedModule === mod.name;
-          const isDimmed = selectedModule && !isActive &&
-            !modules.find((m) => m.name === selectedModule)?.dependencies.includes(mod.name) &&
-            !mod.dependencies.includes(selectedModule);
+          const inHighlight = highlightedNames.has(mod.name);
+          const selectedConnected = selectedModule
+            ? mod.name === selectedModule ||
+              modules
+                .find((m) => m.name === selectedModule)
+                ?.dependencies.includes(mod.name) ||
+              mod.dependencies.includes(selectedModule)
+            : true;
+          const isDimmed = !inHighlight || (selectedModule != null && !selectedConnected);
 
           return (
             <g
               key={mod.name}
               onClick={() => onSelect(mod.name)}
-              className="cursor-pointer"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(mod.name);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Module ${mod.name}: ${mod.fileCount} files, ${formatNumber(mod.lineCount)} lines${isActive ? ", selected" : ""}`}
+              aria-pressed={isActive}
+              className="cursor-pointer focus:outline-none focus-visible:[&>rect]:stroke-brand-400 focus-visible:[&>rect]:stroke-[2px]"
               opacity={isDimmed ? 0.2 : 1}
               style={{ transition: "opacity 0.3s" }}
             >
@@ -515,7 +540,7 @@ function DependencyGraph({
                 y={pos.y + 1}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[11px] font-medium"
+                className="text-[11px] font-medium pointer-events-none"
                 fill={isActive ? "#c4b5fd" : "#a1a1aa"}
                 fontFamily="monospace"
               >
@@ -525,7 +550,7 @@ function DependencyGraph({
                 x={pos.x}
                 y={pos.y + 22}
                 textAnchor="middle"
-                className="text-[8px]"
+                className="text-[8px] pointer-events-none"
                 fill="#525252"
                 fontFamily="monospace"
               >
@@ -564,6 +589,16 @@ export function ArchitectureExplorer() {
     load();
   }, []);
 
+  // Esc closes the detail panel.
+  useEffect(() => {
+    if (!selectedModule) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setSelectedModule(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedModule]);
+
   const filteredModules = useMemo(() => {
     if (!data) return [];
     let result = data.modules;
@@ -581,6 +616,17 @@ export function ArchitectureExplorer() {
     }
     return result;
   }, [data, searchQuery, filterLayer]);
+
+  const highlightedNames = useMemo(
+    () => new Set(filteredModules.map((m) => m.name)),
+    [filteredModules],
+  );
+
+  const isFiltered = searchQuery.length > 0 || filterLayer !== null;
+  const clearFilters = useCallback(() => {
+    setSearchQuery("");
+    setFilterLayer(null);
+  }, []);
 
   const selectedModuleData = useMemo(
     () => data?.modules.find((m) => m.name === selectedModule) ?? null,
@@ -758,7 +804,8 @@ export function ArchitectureExplorer() {
         {viewMode === "graph" ? (
           <div className="space-y-6">
             <DependencyGraph
-              modules={filteredModules}
+              modules={data.modules}
+              highlightedNames={highlightedNames}
               selectedModule={selectedModule}
               onSelect={(name) =>
                 setSelectedModule(selectedModule === name ? null : name)
@@ -776,6 +823,25 @@ export function ArchitectureExplorer() {
           <div className="flex gap-6">
             {/* Module grid */}
             <div className="flex-1 min-w-0">
+              {filteredModules.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-surface-800 bg-surface-900/30 p-12 text-center">
+                  <Search className="mx-auto h-6 w-6 text-surface-600" />
+                  <p className="mt-3 text-sm text-surface-300">No modules match the current filters.</p>
+                  <p className="mt-1 text-xs text-surface-500">
+                    {isFiltered
+                      ? "Try a different search term or clear the layer filter."
+                      : "The architecture data is empty."}
+                  </p>
+                  {isFiltered && (
+                    <button
+                      onClick={clearFilters}
+                      className="mt-4 rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs font-medium text-surface-200 transition-colors hover:border-surface-600 hover:bg-surface-700"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              ) : null}
               {layerStats.map(({ layer, config }) => {
                 const layerModules = filteredModules.filter((m) => m.layer === layer);
                 if (layerModules.length === 0) return null;
